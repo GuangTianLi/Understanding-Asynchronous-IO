@@ -5,13 +5,13 @@
 
 > "知其然，知其所以然"
 
-* [什么是异步?][什么是异步?]
+* [什么是异步?](#什么是异步?)
     * 同步
     * 并发(Concurrency)
         * 线程(Thread)
     * 异步(Asynchronous)
         * I/O多路复用
-* [Python中的异步][Python中的异步]
+* [Python中的异步](#Python中的异步)
     * 生成器(generator)
     * 协程(coroutines)
     * 异步(asynchronous)
@@ -79,3 +79,10 @@ def main():
 if __name__ == '__main__':
     main()
 ```
+
+# 参考文献
+
+* [Some thoughts on asynchronous API design in a post-async/await world](https://vorpus.org/blog/some-thoughts-on-asynchronous-api-design-in-a-post-asyncawait-world/)
+* [Python 开源异步并发框架的未来](https://segmentfault.com/a/1190000000471602)
+* [Understanding Asyncio Node.js Python3.4](http://sahandsaba.com/understanding-asyncio-node-js-python-3-4.html)
+* [使用Python进行并发编程-asyncio篇(一)](http://www.dongwm.com/archives/%E4%BD%BF%E7%94%A8Python%E8%BF%9B%E8%A1%8C%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B-asyncio%E7%AF%87/)
