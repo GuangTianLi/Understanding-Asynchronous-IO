@@ -11,7 +11,9 @@
         * 线程(Thread)
         * I/O多路复用
     * 异步(Asynchronous)
-        
+        * 回调(Callback)
+        * 协程(Coroutines)
+              
 * [Python中的异步](#Python中的异步)
     * 生成器(generator)
     * 协程(coroutines)
@@ -158,7 +160,85 @@ if __name__ == '__main__':
 ```
 
 从上面解决问题的设计方案演化过程，从同步到并发，从线程到I/O多路复用。可以看出根本思路去需要程序本身高效去阻塞，
-让CPU能够执行核心任务
+让CPU能够执行核心任务。意味着将数据包处理，内存管理，处理器调度等任务从内核态切换到应用态，操作系统只处理控制层，
+数据层完全交给应用程序在应用态中处理。极大程度的减少了程序在应用态和内核态之间切换的开销，让高性能、高并发成为了可能。
+
+
+## 异步
+
+通过之前的探究，不难发现一个同步的程序也能通过操作系统的接口实现“并发”，而这种“并发”的行为即可称之为**异步**。
+
+之前通过I/O复用的所提供的解决方案，进一步抽象，即可抽象出最基本的框架**事件循环(Event Loop)**，而其中最容易理解的实现，
+则是**回调(Callback)**.
+
+### 回调
+
+通过对事件本身的抽象，以及其对应的处理函数(handler)，可以利用实现如下算法：
+
+> 维护一个按时间排序的事件列表，最近需要运行的定时器在最前面。这样的话每次只需要从头检查是否有超时的事件并执行它们。
+https://docs.python.org/3/library/bisect.html
+
+[bisect.insort](https://docs.python.org/3/library/bisect.html)使得维护这个列表更加容易，它会帮你在合适的位置插入新的定时器事件组。
+具体代码在`example/hello_event_loop_callback.py`中。
+
+**注意**：在Windows中并非一切都是文件描述符，所以该实例代码无法在Windows平台下运行。
+```python
+from bisect import insort
+from fib import timed_fib
+from time import time
+import selectors
+import sys
+class EventLoop(object):
+    """
+    Implements a callback based single-threaded event loop as a simple
+    demonstration.
+    """
+    def __init__(self, *tasks):
+        self._running = False
+        self._stdin_handlers = []
+        self._timers = []
+        self._selector = selectors.DefaultSelector()
+        self._selector.register(sys.stdin, selectors.EVENT_READ)
+    def run_forever(self):
+        self._running = True
+        while self._running:
+            # First check for available IO input
+            for key, mask in self._selector.select(0):
+                line = key.fileobj.readline().strip()
+                for callback in self._stdin_handlers:
+                    callback(line)
+            # Handle timer events
+            while self._timers and self._timers[0][0] < time():
+                handler = self._timers[0][1]
+                del self._timers[0]
+                handler()
+    def add_stdin_handler(self, callback):
+        self._stdin_handlers.append(callback)
+    def add_timer(self, wait_time, callback):
+        insort(self._timers, (time() + wait_time, callback))
+    def stop(self):
+        self._running = False
+def main():
+    loop = EventLoop()
+    def on_stdin_input(line):
+        if line == 'exit':
+            loop.stop()
+            return
+        n = int(line)
+        print("fib({}) = {}".format(n, timed_fib(n)))
+    def print_hello():
+        print("{} - Hello world!".format(int(time())))
+        loop.add_timer(3, print_hello)
+    def f(x):
+        def g():
+            print(x)
+        return g
+    loop.add_stdin_handler(on_stdin_input)
+    loop.add_timer(0, print_hello)
+    loop.run_forever()
+if __name__ == '__main__':
+    main()
+```
 
 # 参考文献
 
