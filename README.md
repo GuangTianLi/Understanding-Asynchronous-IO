@@ -55,7 +55,7 @@ g()
 为了让程序能解决这样一个问题，就必须引入并发机制，即让程序能够同时做很多事，线程是其中一种。
 
 ### 线程
-具体代码在`example/thread_demo.py`中。
+具体代码在`example/hello_threads.py`中。
 
 ```python
 from threading import Thread
@@ -91,15 +91,20 @@ if __name__ == '__main__':
     * 系统的调度器决定什么时候会把当前线程挂起，并把CPU的控制器交个另一个线程。这个过程称之为称**上下文切换**，包括对于当前线程上下文的保存、对目标线程上下文的加载。
     * 上下文切换会对性能产生影响，因为它本身也需要CPU的周期来执行
 
-而随着现实问题的复杂化，如10K问题.
-
 ### I/O多路复用
+
+而随着现实问题的复杂化，如10K问题。
 
 > 在Nginx没有流行起来的时候，常被提到一个词 10K（并发1W）。在互联网的早期，网速很慢、用户群很小需求也只是简单的页面浏览，所以最初的服务器设计者们使用基于进程/线程模型，也就是一个TCP连接就是分配一个进程(线程)。谁都没有想到现在Web 2.0时候用户群里和复杂的页面交互问题，而现在即时通信和实在实时互动已经很普遍了。那么你设想如果每一个用户都和服务器保持一个（甚至多个）TCP连接才能进行实时的数据交互，别说BAT这种量级的网站，就是豆瓣这种比较小的网站，同时的并发连接也要过亿了。进程是操作系统最昂贵的资源，一台机器无法创建很多进程。如果要创建10K个进程，那么操作系统是无法承受的。就算我们不讨论随着服务器规模大幅上升带来复杂度几何级数上升的问题，采用分布式系统，只是维持1亿用户在线需要10万台服务器，成本巨大，也只有FLAG、BAT这样公司才有财力购买如此多的服务器。
 
+而同样存在一些原因，让我妈避免考虑多线程的方式：
+
+* 线程在计算和资源消耗的角度来说是比较昂贵的。
+* 线程并发所带来的问题，比如因为共享的内存空间而带来的死锁和竞态条件。这些又会导致更加复杂的代码，在编写代码的时候需要时不时地注意一些线程安全的问题。
+
 为了解决这一问题，出现了「用同一进程/线程来同时处理若干连接」的思路，也就是I/O多路复用。
 
-以Linux操作系统为列，Linux操作系统给出了三种监听文件描述符的机制，具体实现可[参考](http://www.cnblogs.com/Anker/p/3265058.html)：
+以Linux操作系统为例，Linux操作系统给出了三种监听文件描述符的机制，具体实现可[参考](http://www.cnblogs.com/Anker/p/3265058.html)：
 
 * select: 每个连接对应一个描述符（socket），循环处理各个连接，先查下它的状态，ready了就进行处理，不ready就不进行处理。但是缺点很多：
     * 每次调用select，都需要把fd集合从用户态拷贝到内核态，这个开销在fd很多时会很大
@@ -114,6 +119,40 @@ if __name__ == '__main__':
     * 内存拷贝，利用mmap()文件映射内存加速与内核空间的消息传递；即epoll使用mmap减少复制开销
     
 综上所述，通过epoll的机制，给现代高级语言提供了高并发、高性能解决方案的基础。而同样FreeBSD推出了kqueue，Windows推出了IOCP，Solaris推出了/dev/poll。
+
+而在Python3.4中新增了[selectors模块](https://docs.python.org/3/library/selectors.html)，用于封装各个操作系统所提供的I/O多路复用的接口。
+那么之前同样的问题，我们可以通过I/O多路复用的机制实现并发。
+
+> 写一个程序每隔3秒打印“Hello World”，同时等待用户命令行的输入。用户每输入一个自然数n，就计算并打印斐波那契函数的值F(n)，之后继续等待下一个输入
+
+具体代码在`example/selectors_poll.py`中。
+
+```python
+import selectors
+import sys
+from time import time
+from fib import timed_fib
+def process_input(stream):
+    text = stream.readline()
+    n = int(text.strip())
+    print('fib({}) = {}'.format(n, timed_fib(n)))
+def print_hello():
+    print("{} - Hello world!".format(int(time())))
+def main():
+    selector = selectors.DefaultSelector()
+    # Register the selector to poll for "read" readiness on stdin
+    selector.register(sys.stdin, selectors.EVENT_READ)
+    last_hello = 0  # Setting to 0 means the timer will start right away
+    while True:
+        # Wait at most 100 milliseconds for input to be available
+        for event, mask in selector.select(0.1):
+            process_input(event.fileobj)
+        if time() - last_hello > 3:
+            last_hello = time()
+            print_hello()
+if __name__ == '__main__':
+    main()
+```
 
 # 参考文献
 
