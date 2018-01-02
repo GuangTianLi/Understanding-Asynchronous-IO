@@ -134,7 +134,7 @@ if __name__ == '__main__':
 通过最基础的轮询机制(poll)，轮询标准输入(stdin)是否变为可读的状态，从而当标准输入能被读取时，去执行计算Fibonacci数列。然后判断时间是否过去三秒钟，从而是否输出"Hello World!".
 具体代码在`example/hello_selectors_poll.py`中。
 
-**注意**：在Windows中并非一切都是文件描述符，所以该实例代码无法在Windows平台下运行。
+**注意**：在Windows中并非一切都是文件，所以该实例代码无法在Windows平台下运行。
 
 ```python
 import selectors
@@ -184,7 +184,7 @@ if __name__ == '__main__':
 [bisect.insort](https://docs.python.org/3/library/bisect.html)使得维护这个列表更加容易，它会帮你在合适的位置插入新的定时器事件组。
 具体代码在`example/hello_event_loop_callback.py`中。
 
-**注意**：在Windows中并非一切都是文件描述符，所以该实例代码无法在Windows平台下运行。
+**注意**：在Windows中并非一切都是文件，所以该实例代码无法在Windows平台下运行。
 ```python
 from bisect import insort
 from fib import timed_fib
