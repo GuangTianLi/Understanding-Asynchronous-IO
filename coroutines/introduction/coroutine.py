@@ -9,6 +9,7 @@ def coroutine(func):
         cr = func(*args, **kwargs)
         cr.__next__()
         return cr
+
     return start
 
 
@@ -21,6 +22,7 @@ if __name__ == '__main__':
             line = (yield)
             if pattern in line:
                 print(line)
+
 
     g = grep("python")
     # Notice how you don't need a next() call here
